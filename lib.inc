@@ -17,7 +17,9 @@ string_length:
 		ret
 
 print_string:
+    push rdi
 	call string_length ; в rax кладём длинну строки
+	pop rdi
 	mov rsi,rdi ; кладём количество выводимых символов
 	mov rdx,rax ; кладём ссылку откуда выводить
 	mov rax,1 ; sys_write
@@ -59,7 +61,9 @@ print_uint:
 		jmp .loop ;
 	.print:
 		mov rdi,rsp ; аргумент для принт стринг
+		push r12
 		call print_string ;
+		pop r12
 		mov rsp,r12 ;
 	pop r13 ;
 	pop r12 ;
@@ -77,14 +81,22 @@ print_int:
 	neg rax ; делаем число положительным
 	mov rdi,rax ;
 	.pos: 
-		call print_uint ; выводим число
-		ret
-		
+		jmp print_uint ; выводим число
+
 string_equals:
-	call string_length 
+    push rsi
+    push rcx
+	call string_length
+	pop rcx
+	pop rsi
+
 	mov rcx,rax ; кладём длинну строки в rcx
 	xchg rdi, rsi ; помещаем в rdi адрес второй строки
+
+	push rcx
 	call string_length
+	pop rcx
+
 	cmp rax,rcx ; сравнениваем длины и ставим флаги по итогу
 	jne .not_equals ; если не равны (флаг не ноль)
 	repe cmpsb ; repe повторять пока равны, cmpsb устанавливаем флаги
@@ -92,12 +104,12 @@ string_equals:
 	mov rax,1 ; возвращаем 1
 	ret
 	.not_equals:
-		mov rax,0 ; возвращаем 0
+		xor rax, rax
 		ret	
 
 read_char:
 	dec rsp ; место для записи символа
-	mov rax,0 ; код sys_read
+	xor rax, rax ; код sys_read
 	mov rdi,0 ; откуда читаем
 	mov rsi,rsp ; куда кладём
 	mov rdx,1 ; сколько читаем
@@ -147,13 +159,17 @@ read_word:
         	ret
     	.overflow:
         	pop rax
-        	mov rax, 0
+        	xor rax, rax
         	mov rdx, 0
         	pop rbx
         	ret
 			
 parse_uint:
+    push rdi
+    push rdx
 	call string_length ; пасхалка. если нашёл, то ты молодец
+	pop rdx
+	pop rdi
 	mov rcx,rax ;	     если ты препод который это нашёл, то вы тоже молодец :)
 	mov rsi,rdi ;	     не валите меня, пожалуйста
 	xor rdx,rdx ; 
@@ -194,7 +210,15 @@ string_copy:
 	xor rax, rax ;
 	xor r9, r9 ;
 	xor rcx, rcx ;
+	    push rsi
+	    push rdx
+	    push rdi
+	    push rcx
     	call string_length ;
+    	pop rcx
+    	pop rdi
+    	pop rdx
+    	pop rsi
     	push rax ;
     	push rsi ;
 	.loop:
@@ -207,7 +231,7 @@ string_copy:
     		dec rax ;
     		inc rcx ; увеличиваем счётчик
     		jmp .loop ;
-	.end
+	.end:
 		pop rsi ;
 		pop rax ;
     		mov byte [rsi+rax], 0 ;
@@ -215,5 +239,5 @@ string_copy:
 	.error:
     		pop rsi ;
 		pop rax ;
-		mov rax, 0 ;
+		xor rax, rax ;
 		ret
